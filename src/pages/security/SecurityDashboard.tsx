@@ -1,0 +1,519 @@
+import React, { useEffect, useState } from "react";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Search, Shield, CheckCircle, XCircle, Clock, Eye, ScanLine, AlertTriangle, LogOut, LogIn } from "lucide-react";
+import { format } from "date-fns";
+import { QRCodeSVG } from "qrcode.react";
+import { VerifyOutpassDialog } from "@/components/security/VerifyOutpassDialog";
+import { EmergencyRequestDialog } from "@/components/security/EmergencyRequestDialog";
+
+interface OutpassWithStudent {
+  id: string;
+  student_id: string;
+  reason: string;
+  destination: string;
+  departure_time: string;
+  return_time: string;
+  status: "pending" | "approved" | "rejected";
+  gate_status: string;
+  gate_verified_at: string | null;
+  hod_remarks?: string;
+  approved_by?: string;
+  requested_by_security: boolean;
+  created_at: string;
+  updated_at: string;
+  student?: {
+    full_name: string;
+    roll_number?: string;
+    department?: string;
+    email: string;
+  };
+  approver?: {
+    name: string;
+  };
+}
+
+const SecurityDashboard: React.FC = () => {
+  const { profile } = useAuth();
+  const [requests, setRequests] = useState<OutpassWithStudent[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [gateFilter, setGateFilter] = useState<string>("all");
+  const [emergencyFilter, setEmergencyFilter] = useState<boolean>(false);
+  const [selectedOutpass, setSelectedOutpass] = useState<OutpassWithStudent | null>(null);
+  const [verifyOpen, setVerifyOpen] = useState(false);
+  const [emergencyOpen, setEmergencyOpen] = useState(false);
+
+  const fetchRequests = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("outpass_requests")
+        .select(`
+          *,
+          student:profiles!outpass_requests_student_id_fkey(full_name, roll_number, department, email),
+          approver:staff_members!outpass_requests_approved_by_fkey(name)
+        `)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setRequests((data as any) || []);
+    } catch (err) {
+      console.error("Error fetching outpass requests:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (profile) fetchRequests();
+  }, [profile]);
+
+  // Real-time subscription
+  useEffect(() => {
+    const channel = supabase
+      .channel("outpass-realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "outpass_requests" },
+        () => {
+          fetchRequests();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const filtered = requests.filter((r) => {
+    const matchesStatus = statusFilter === "all" || r.status === statusFilter;
+    const matchesGate = gateFilter === "all" || r.gate_status === gateFilter;
+    const matchesEmergency = !emergencyFilter || r.requested_by_security;
+    const q = searchQuery.toLowerCase();
+    const matchesSearch =
+      !q ||
+      r.student?.full_name?.toLowerCase().includes(q) ||
+      r.student?.roll_number?.toLowerCase().includes(q) ||
+      r.id.toLowerCase().includes(q);
+    return matchesStatus && matchesGate && matchesEmergency && matchesSearch;
+  });
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "approved":
+        return <Badge className="bg-green-600 text-white"><CheckCircle className="w-3 h-3 mr-1" />Approved</Badge>;
+      case "rejected":
+        return <Badge variant="destructive"><XCircle className="w-3 h-3 mr-1" />Rejected</Badge>;
+      default:
+        return <Badge variant="secondary"><Clock className="w-3 h-3 mr-1" />Pending</Badge>;
+    }
+  };
+
+  const getGateStatusBadge = (status: string) => {
+    switch (status) {
+      case "left":
+        return <Badge className="bg-orange-600 text-white"><LogOut className="w-3 h-3 mr-1" />Left</Badge>;
+      case "returned":
+        return <Badge className="bg-green-600 text-white"><LogIn className="w-3 h-3 mr-1" />Returned</Badge>;
+      default:
+        return <Badge variant="outline"><Clock className="w-3 h-3 mr-1" />On Campus</Badge>;
+    }
+  };
+
+  const approvedCount = requests.filter((r) => r.status === "approved").length;
+  const rejectedCount = requests.filter((r) => r.status === "rejected").length;
+  const pendingCount = requests.filter((r) => r.status === "pending").length;
+  const leftCampusCount = requests.filter((r) => r.gate_status === "left").length;
+  const emergencyPendingCount = requests.filter((r) => r.requested_by_security && r.status === "pending").length;
+  const emergencyCount = requests.filter((r) => r.requested_by_security).length;
+
+  return (
+    <DashboardLayout>
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold flex items-center gap-2">
+              <Shield className="w-8 h-8 text-primary" />
+              Security Dashboard
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              Verify outpasses, track gate status, and manage emergency requests
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button onClick={() => setVerifyOpen(true)} className="gap-2">
+              <ScanLine className="w-4 h-4" />
+              Verify Outpass
+            </Button>
+            <Button onClick={() => setEmergencyOpen(true)} variant="outline" className="gap-2">
+              <AlertTriangle className="w-4 h-4" />
+              Emergency Request
+            </Button>
+          </div>
+        </div>
+
+        {/* Stats */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-4">
+          <Card>
+            <CardContent className="pt-6 flex items-center gap-4">
+              <div className="p-3 rounded-full bg-green-100 dark:bg-green-900/30">
+                <CheckCircle className="w-6 h-6 text-green-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{approvedCount}</p>
+                <p className="text-sm text-muted-foreground">Approved</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6 flex items-center gap-4">
+              <div className="p-3 rounded-full bg-red-100 dark:bg-red-900/30">
+                <XCircle className="w-6 h-6 text-red-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{rejectedCount}</p>
+                <p className="text-sm text-muted-foreground">Rejected</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6 flex items-center gap-4">
+              <div className="p-3 rounded-full bg-yellow-100 dark:bg-yellow-900/30">
+                <Clock className="w-6 h-6 text-yellow-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{pendingCount}</p>
+                <p className="text-sm text-muted-foreground">Pending</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6 flex items-center gap-4">
+              <div className="p-3 rounded-full bg-orange-100 dark:bg-orange-900/30">
+                <LogOut className="w-6 h-6 text-orange-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{leftCampusCount}</p>
+                <p className="text-sm text-muted-foreground">Left Campus</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6 flex items-center gap-4">
+              <div className="p-3 rounded-full bg-purple-100 dark:bg-purple-900/30">
+                <AlertTriangle className="w-6 h-6 text-purple-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{emergencyCount}</p>
+                <p className="text-sm text-muted-foreground">Emergency</p>
+              </div>
+            </CardContent>
+          </Card>
+          {emergencyPendingCount > 0 && (
+            <Card className="col-span-2 sm:col-span-4 lg:col-span-6 border-orange-200 dark:border-orange-900 bg-orange-50 dark:bg-orange-950/20">
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-3">
+                  <AlertTriangle className="w-5 h-5 text-orange-600" />
+                  <div>
+                    <p className="font-semibold text-orange-900 dark:text-orange-400">
+                      {emergencyPendingCount} Emergency Request{emergencyPendingCount > 1 ? 's' : ''} Pending Approval
+                    </p>
+                    <p className="text-sm text-orange-700 dark:text-orange-500">
+                      These requests were submitted by security and require staff approval
+                    </p>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="ml-auto border-orange-600 text-orange-600 hover:bg-orange-100"
+                    onClick={() => setEmergencyFilter(!emergencyFilter)}
+                  >
+                    {emergencyFilter ? 'Show All' : 'View Emergency Requests'}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        {/* Filters */}
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search by name, ID, or outpass ID..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-full sm:w-[180px]">
+                  <SelectValue placeholder="Approval Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="approved">Approved</SelectItem>
+                  <SelectItem value="rejected">Rejected</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={gateFilter} onValueChange={setGateFilter}>
+                <SelectTrigger className="w-full sm:w-[180px]">
+                  <SelectValue placeholder="Gate Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Gate Status</SelectItem>
+                  <SelectItem value="on_campus">On Campus</SelectItem>
+                  <SelectItem value="left">Left Campus</SelectItem>
+                  <SelectItem value="returned">Returned</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button 
+                variant={emergencyFilter ? "default" : "outline"}
+                onClick={() => setEmergencyFilter(!emergencyFilter)}
+                className="gap-2"
+              >
+                <AlertTriangle className="w-4 h-4" />
+                {emergencyFilter ? 'Showing Emergency' : 'Emergency Only'}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Table */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Outpass Requests ({filtered.length})</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="flex justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary" />
+              </div>
+            ) : filtered.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">No outpass requests found.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>ID Number</TableHead>
+                      <TableHead>Department</TableHead>
+                      <TableHead>Date & Time</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Gate Status</TableHead>
+                      <TableHead>Authority</TableHead>
+                      <TableHead>Action</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filtered.map((r) => (
+                      <TableRow key={r.id}>
+                        <TableCell className="font-medium">
+                          {r.student?.full_name || "—"}
+                          {r.requested_by_security && (
+                            <Badge variant="outline" className="ml-2 text-xs">Emergency</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>{r.student?.roll_number || "—"}</TableCell>
+                        <TableCell>{r.student?.department || "—"}</TableCell>
+                        <TableCell className="text-sm">
+                          {format(new Date(r.created_at), "MMM dd, yyyy HH:mm")}
+                        </TableCell>
+                        <TableCell>{getStatusBadge(r.status)}</TableCell>
+                        <TableCell>{getGateStatusBadge(r.gate_status)}</TableCell>
+                        <TableCell>{r.approver?.name || "—"}</TableCell>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setSelectedOutpass(r)}
+                          >
+                            <Eye className="w-4 h-4 mr-1" /> View
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Detail Dialog */}
+      <Dialog open={!!selectedOutpass} onOpenChange={() => setSelectedOutpass(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Outpass Details</DialogTitle>
+          </DialogHeader>
+          {selectedOutpass && (
+            <div className="space-y-4">
+              {selectedOutpass.status === "approved" && (
+                <div className="flex flex-col items-center gap-2 p-4 border rounded-lg bg-muted/50">
+                  <QRCodeSVG value={selectedOutpass.id} size={160} />
+                  <p className="text-xs text-muted-foreground font-mono">{selectedOutpass.id}</p>
+                </div>
+              )}
+
+              {/* Approval Info - Highlighted */}
+              {selectedOutpass.status === "approved" && selectedOutpass.approver?.name && (
+                <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-950/30 border-2 border-blue-200 dark:border-blue-900">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 rounded-full bg-blue-100 dark:bg-blue-900/50">
+                      <CheckCircle className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-blue-900 dark:text-blue-400 mb-1">
+                        ✓ Approved by Staff Authority
+                      </p>
+                      <p className="text-lg font-bold text-blue-950 dark:text-blue-300">
+                        {selectedOutpass.approver.name}
+                      </p>
+                      <p className="text-xs text-blue-700 dark:text-blue-500 mt-1">
+                        Authorization verified - Student cleared for exit
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {selectedOutpass.status === "pending" && (
+                <div className="p-3 rounded-lg bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-900 text-center">
+                  <Clock className="w-5 h-5 text-yellow-600 mx-auto mb-1" />
+                  <p className="text-sm font-medium text-yellow-900 dark:text-yellow-400">
+                    Awaiting Staff Approval
+                  </p>
+                </div>
+              )}
+
+              {selectedOutpass.status === "rejected" && (
+                <div className="p-3 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 text-center">
+                  <XCircle className="w-5 h-5 text-red-600 mx-auto mb-1" />
+                  <p className="text-sm font-medium text-red-900 dark:text-red-400">
+                    Request Rejected - Exit Not Authorized
+                  </p>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <p className="text-muted-foreground">Student Name</p>
+                  <p className="font-medium">{selectedOutpass.student?.full_name}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">ID Number</p>
+                  <p className="font-medium">{selectedOutpass.student?.roll_number || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Department</p>
+                  <p className="font-medium">{selectedOutpass.student?.department || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Status</p>
+                  {getStatusBadge(selectedOutpass.status)}
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Gate Status</p>
+                  {getGateStatusBadge(selectedOutpass.gate_status)}
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Destination</p>
+                  <p className="font-medium">{selectedOutpass.destination}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Reason</p>
+                  <p className="font-medium">{selectedOutpass.reason}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Departure</p>
+                  <p className="font-medium">
+                    {format(new Date(selectedOutpass.departure_time), "MMM dd, yyyy HH:mm")}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Return</p>
+                  <p className="font-medium">
+                    {format(new Date(selectedOutpass.return_time), "MMM dd, yyyy HH:mm")}
+                  </p>
+                </div>
+                {selectedOutpass.gate_verified_at && (
+                  <div>
+                    <p className="text-muted-foreground">Gate Verified At</p>
+                    <p className="font-medium">
+                      {format(new Date(selectedOutpass.gate_verified_at), "MMM dd, yyyy HH:mm")}
+                    </p>
+                  </div>
+                )}
+                {selectedOutpass.hod_remarks && (
+                  <div className="col-span-2">
+                    <p className="text-muted-foreground">Remarks</p>
+                    <p className="font-medium">{selectedOutpass.hod_remarks}</p>
+                  </div>
+                )}
+                {selectedOutpass.requested_by_security && (
+                  <div className="col-span-2">
+                    <Badge variant="outline" className="text-orange-600 border-orange-600">
+                      <AlertTriangle className="w-3 h-3 mr-1" /> Emergency Request by Security
+                    </Badge>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Verify Dialog */}
+      <VerifyOutpassDialog
+        open={verifyOpen}
+        onOpenChange={setVerifyOpen}
+        onVerified={fetchRequests}
+      />
+
+      {/* Emergency Request Dialog */}
+      <EmergencyRequestDialog
+        open={emergencyOpen}
+        onOpenChange={setEmergencyOpen}
+        onCreated={fetchRequests}
+      />
+    </DashboardLayout>
+  );
+};
+
+export default SecurityDashboard;

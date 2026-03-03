@@ -1,0 +1,314 @@
+// This is your Prisma schema file
+// Learn more: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums
+enum UserRole {
+  ADMIN
+  STAFF
+  STUDENT
+  SECURITY
+}
+
+enum OutpassStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum GateStatus {
+  ON_CAMPUS
+  LEFT
+  RETURNED
+}
+
+enum MeetingStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  COMPLETED
+}
+
+// Multi-tenant: Organizations
+model Organization {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  domain    String?  @unique
+  logo      String?
+  settings  Json?    // Organization-specific settings
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  users            User[]
+  staff            StaffMember[]
+  outpassRequests  OutpassRequest[]
+  meetingRequests  MeetingRequest[]
+  feedback         Feedback[]
+  departments      Department[]
+  customRoles      CustomRole[]
+
+  @@map("organizations")
+}
+
+// Users table
+model User {
+  id             String       @id @default(uuid())
+  email          String       @unique
+  password       String
+  fullName       String
+  role           UserRole     @default(STUDENT)
+  phone          String?
+  department     String?
+  rollNumber     String?      // For students
+  isActive       Boolean      @default(true)
+  lastLoginAt    DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  // Multi-tenant
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  // Department link
+  departmentId   String?
+  departmentObj  Department?  @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+
+  // Relations
+  outpassRequests  OutpassRequest[]
+  meetingRequests  MeetingRequest[]
+  staffMember      StaffMember?
+  feedback         Feedback[]
+
+  @@unique([email, organizationId])
+  @@index([organizationId, role])
+  @@index([departmentId])
+  @@map("users")
+}
+
+// Staff members (extended from User)
+model StaffMember {
+  id          String   @id @default(uuid())
+  name        String
+  title       String
+  email       String?
+  department  String   @default("Computer Science")
+  isHod       Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Link to User
+  userId     String?       @unique
+  user       User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  // Multi-tenant
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  // Relations
+  availability      StaffAvailability[]
+  meetingRequests   MeetingRequest[]
+  approvedOutpasses OutpassRequest[]
+
+  @@index([organizationId])
+  @@map("staff_members")
+}
+
+// Staff availability schedules
+model StaffAvailability {
+  id          String   @id @default(uuid())
+  dayOfWeek   Int      // 0-6 (Sunday-Saturday)
+  startTime   String   // HH:mm format
+  endTime     String   // HH:mm format
+  isAvailable Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  staffId      String
+  staff        StaffMember @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@index([staffId, dayOfWeek])
+  @@map("staff_availability")
+}
+
+// Outpass requests
+model OutpassRequest {
+  id                   String        @id @default(uuid())
+  reason               String
+  destination          String
+  departureTime        DateTime
+  returnTime           DateTime
+  status               OutpassStatus @default(PENDING)
+  hodRemarks           String?
+  gateStatus           GateStatus    @default(ON_CAMPUS)
+  gateVerifiedAt       DateTime?
+  requestedBySecurity  Boolean       @default(false)
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+
+  // Student who requested
+  studentId    String
+  student      User         @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  // Staff who approved
+  approvedById String?
+  approvedBy   StaffMember? @relation(fields: [approvedById], references: [id], onDelete: SetNull)
+
+  // Multi-tenant
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, status])
+  @@index([studentId])
+  @@map("outpass_requests")
+}
+
+// Meeting requests
+model MeetingRequest {
+  id            String        @id @default(uuid())
+  purpose       String
+  meetingType   String
+  requestedTime DateTime
+  status        MeetingStatus @default(PENDING)
+  staffRemarks  String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  // Student who requested
+  studentId String
+  student   User   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  // Staff member
+  staffId String
+  staff   StaffMember @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  // Multi-tenant
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, status])
+  @@index([studentId])
+  @@index([staffId])
+  @@map("meeting_requests")
+}
+
+// Feedback
+model Feedback {
+  id          String   @id @default(uuid())
+  message     String
+  rating      Int?     // 1-5
+  category    String   @default("general")
+  isAnonymous Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  // Multi-tenant
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@map("feedback")
+}
+
+// FAQ
+model FAQ {
+  id           String   @id @default(uuid())
+  question     String
+  answer       String
+  category     String   @default("general")
+  displayOrder Int      @default(0)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("faq")
+}
+
+// AI-Generated Organization Structure Models
+
+// Departments with hierarchy support
+model Department {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  level       Int      @default(0) // Hierarchy level (0 = root, 1 = child, 2 = grandchild, etc.)
+  color       String?  // For visual representation
+  icon        String?  // Icon name for UI
+  metadata    Json?    // Additional department-specific data
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Hierarchy
+  parentId       String?
+  parent         Department?  @relation("DepartmentHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children       Department[] @relation("DepartmentHierarchy")
+
+  // Multi-tenant
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  // Relations
+  users          User[]
+  customRoles    CustomRole[]
+
+  @@index([organizationId])
+  @@index([parentId])
+  @@map("departments")
+}
+
+// Custom roles beyond the basic enum (ADMIN, STAFF, STUDENT, SECURITY)
+model CustomRole {
+  id          String   @id @default(uuid())
+  name        String   // e.g., "Department Head", "Team Lead", "Coordinator"
+  description String?
+  level       Int      @default(0) // Authority level (higher = more authority)
+  color       String?  // For UI representation
+  icon        String?  // Icon name
+  isActive    Boolean  @default(true)
+  metadata    Json?    // Additional role-specific data
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Multi-tenant
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  // Department link
+  departmentId   String?
+  department     Department?  @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+
+  // Relations
+  permissions    Permission[]
+
+  @@index([organizationId])
+  @@index([departmentId])
+  @@map("custom_roles")
+}
+
+// Permissions for custom roles
+model Permission {
+  id          String   @id @default(uuid())
+  resource    String   // e.g., "outpass", "meeting", "user", "department"
+  action      String   // e.g., "create", "read", "update", "delete", "approve"
+  conditions  Json?    // Optional conditions for the permission
+  createdAt   DateTime @default(now())
+
+  // Role link
+  roleId      String
+  role        CustomRole @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, resource, action])
+  @@index([roleId])
+  @@map("permissions")
+}

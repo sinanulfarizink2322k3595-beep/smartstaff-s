@@ -1,0 +1,106 @@
+// Mock data for development/testing without database
+import { User, OutpassRequest, MeetingRequest } from '@prisma/client';
+
+export const mockUsers: Partial<User>[] = [
+  {
+    id: '1',
+    email: 'farizisinanul@gmail.com',
+    fullName: 'Farizi Sinanul',
+    role: 'ADMIN',
+    password: '$2a$10$...',
+    organizationId: 'org-1',
+    isActive: true,
+    createdAt: new Date(),
+  },
+  {
+    id: '2',
+    email: 'student@example.com',
+    fullName: 'John Doe',
+    role: 'STUDENT',
+    password: '$2a$10$...',
+    organizationId: 'org-1',
+    isActive: true,
+    createdAt: new Date(),
+  },
+  {
+    id: '3',
+    email: 'staff@example.com',
+    fullName: 'Jane Smith',
+    role: 'STAFF',
+    password: '$2a$10$...',
+    organizationId: 'org-1',
+    isActive: true,
+    createdAt: new Date(),
+  },
+  {
+    id: '4',
+    email: 'security@example.com',
+    fullName: 'Security Officer',
+    role: 'SECURITY',
+    password: '$2a$10$...',
+    organizationId: 'org-1',
+    isActive: true,
+    createdAt: new Date(),
+  },
+];
+
+export const mockOutpasses: Partial<OutpassRequest>[] = [
+  {
+    id: '1',
+    reason: 'Home visit',
+    destination: 'Home',
+    departureTime: new Date(),
+    returnTime: new Date(Date.now() + 24 * 60 * 60 * 1000),
+    status: 'PENDING',
+    studentId: '2',
+    organizationId: 'org-1',
+    createdAt: new Date(),
+  },
+  {
+    id: '2',
+    reason: 'Medical appointment',
+    destination: 'Hospital',
+    departureTime: new Date(),
+    returnTime: new Date(Date.now() + 4 * 60 * 60 * 1000),
+    status: 'APPROVED',
+    studentId: '2',
+    organizationId: 'org-1',
+    createdAt: new Date(),
+  },
+  {
+    id: '3',
+    reason: 'Family emergency',
+    destination: 'City Center',
+    departureTime: new Date(),
+    returnTime: new Date(Date.now() + 8 * 60 * 60 * 1000),
+    status: 'REJECTED',
+    studentId: '2',
+    organizationId: 'org-1',
+    createdAt: new Date(),
+  },
+];
+
+export const mockMeetings: Partial<MeetingRequest>[] = [
+  {
+    id: '1',
+    studentId: '2',
+    staffId: '3',
+    purpose: 'Academic counseling',
+    meetingType: 'IN_PERSON',
+    requestedTime: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
+    status: 'PENDING',
+    organizationId: 'org-1',
+    createdAt: new Date(),
+  },
+  {
+    id: '2',
+    studentId: '2',
+    staffId: '3',
+    purpose: 'Project discussion',
+    meetingType: 'VIRTUAL',
+    requestedTime: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000),
+    status: 'APPROVED',
+    organizationId: 'org-1',
+    createdAt: new Date(),
+  },
+];

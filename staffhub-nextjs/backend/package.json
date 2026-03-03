@@ -1,0 +1,63 @@
+{
+  "name": "staffhub-backend",
+  "version": "2.0.0",
+  "description": "StaffHub Backend API - Multi-tenant staff management SaaS",
+  "main": "dist/server.js",
+  "scripts": {
+    "dev": "nodemon src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:studio": "prisma studio",
+    "test": "jest --watchAll=false",
+    "test:watch": "jest --watch",
+    "db:init": "node migrate-helper.js init",
+    "db:migrate": "node migrate-helper.js apply",
+    "db:check": "node migrate-helper.js check",
+    "db:reset": "node migrate-helper.js reset",
+    "db:seed": "node seed-database.js",
+    "db:health": "node db-health-check.js",
+    "db:test": "node test-database.js",
+    "db:test:quick": "node quick-test.js",
+    "db:test:ai": "node test-ai-orgbuilder.js",
+    "db:performance": "node performance-utils.js",
+    "users:reset": "ts-node scripts/reset-users.ts"
+  },
+  "keywords": [
+    "staffhub",
+    "saas",
+    "multi-tenant",
+    "express",
+    "typescript"
+  ],
+  "author": "Smart Staff Nilgiri Team",
+  "license": "PROPRIETARY",
+  "dependencies": {
+    "@prisma/client": "^5.9.0",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.1",
+    "express": "^4.18.2",
+    "express-validator": "^7.0.1",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "morgan": "^1.10.0",
+    "openai": "^4.104.0"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/jsonwebtoken": "^9.0.5",
+    "@types/morgan": "^1.9.9",
+    "@types/node": "^20.11.16",
+    "@typescript-eslint/eslint-plugin": "^6.21.0",
+    "@typescript-eslint/parser": "^6.21.0",
+    "eslint": "^8.56.0",
+    "nodemon": "^3.0.3",
+    "prisma": "^5.9.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  }
+}
