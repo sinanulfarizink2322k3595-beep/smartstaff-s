@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { supabase } from "@/lib/supabase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -54,27 +54,20 @@ const SecurityExitLogs = () => {
     new Date().toISOString().split("T")[0]
   );
 
-  useEffect(() => {
-    fetchLogs();
-    // Refetch every 10 seconds
-    const interval = setInterval(fetchLogs, 10000);
-    return () => clearInterval(interval);
-  }, [selectedDate]);
-
-  const fetchLogs = async () => {
+  const fetchLogs = useCallback(async () => {
     try {
       // Get gate logs from localStorage
       const allLogs = JSON.parse(localStorage.getItem("gate_logs") || "[]");
 
       // Filter by selected date
-      const filteredByDate = allLogs.filter((log: any) => {
-        const logDate = new Date(log.verified_at).toISOString().split("T")[0];
+      const filteredByDate = (allLogs as Record<string, unknown>[]).filter((log) => {
+        const logDate = new Date(log.verified_at as string).toISOString().split("T")[0];
         return logDate === selectedDate;
       });
 
       // Fetch outpass details for these logs
       if (filteredByDate.length > 0) {
-        const outpassIds = [...new Set(filteredByDate.map((l: any) => l.outpass_id))] as string[];
+        const outpassIds = [...new Set(filteredByDate.map((l) => l.outpass_id as string))] as string[];
         const { data: outpassData } = await supabase
           .from("outpass_requests")
           .select(
@@ -84,19 +77,19 @@ const SecurityExitLogs = () => {
 
         // Fetch student details
         if (outpassData) {
-          const studentIds = [...new Set(outpassData.map((o: any) => o.student_id))];
+          const studentIds = [...new Set(outpassData.map((o) => o.student_id))];
           const { data: studentData } = await supabase
             .from("profiles")
             .select("id, full_name")
             .in("id", studentIds);
 
-          const outpassMap = new Map(outpassData.map((o: any) => [o.id, o]));
+          const outpassMap = new Map(outpassData.map((o) => [o.id, o]));
           const studentMap = new Map(
-            (studentData || []).map((s: any) => [s.id, s])
+            (studentData || []).map((s) => [s.id, s])
           );
 
-          const enrichedLogs = filteredByDate.map((log: any) => {
-            const outpass = outpassMap.get(log.outpass_id);
+          const enrichedLogs = filteredByDate.map((log) => {
+            const outpass = outpassMap.get(log.outpass_id as string);
             const student = outpass
               ? studentMap.get(outpass.student_id)
               : null;
@@ -116,12 +109,19 @@ const SecurityExitLogs = () => {
       } else {
         setLogs([]);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error("Failed to load logs");
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedDate]);
+
+  useEffect(() => {
+    fetchLogs();
+    // Refetch every 10 seconds
+    const interval = setInterval(fetchLogs, 10000);
+    return () => clearInterval(interval);
+  }, [fetchLogs]);
 
   const filteredLogs = useMemo(() => {
     return logs.filter((log) => {
@@ -179,7 +179,7 @@ const SecurityExitLogs = () => {
 
     const csv = [
       headers.join(","),
-      ...rows.map((row) => row.map((cell: any) => `"${cell}"`).join(",")),
+      ...rows.map((row) => row.map((cell: unknown) => `"${cell}"`).join(",")),
     ].join("\n");
 
     const blob = new Blob([csv], { type: "text/csv" });
@@ -296,7 +296,7 @@ const SecurityExitLogs = () => {
 
           <div>
             <Label className="text-sm font-semibold mb-2 block">Filter Type</Label>
-            <Select value={filterType} onValueChange={(v: any) => setFilterType(v)}>
+            <Select value={filterType} onValueChange={(v: string) => setFilterType(v as "all" | "exit" | "entry")}>
               <SelectTrigger>
                 <SelectValue placeholder="All actions" />
               </SelectTrigger>

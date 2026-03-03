@@ -2,13 +2,13 @@
 
 const API_BASE_URL = process.env.VITE_API_URL || 'http://localhost:5000/api';
 
-interface ApiResponse<T = any> {
+interface ApiResponse<T = unknown> {
   data?: T;
   message?: string;
   error?: string;
 }
 
-interface PaginatedResponse<T = any> {
+interface PaginatedResponse<T = unknown> {
   data: T[];
   pagination: {
     page: number;
@@ -55,7 +55,7 @@ const apiCall = async (
     }
 
     return await response.json();
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('API Error:', error);
     throw error;
   }
@@ -76,7 +76,7 @@ export const securityApi = {
   },
 
   // Get gate logs with pagination
-  getGateLogs: async (page: number = 1, limit: number = 10, filters?: any) => {
+  getGateLogs: async (page: number = 1, limit: number = 10, filters?: Record<string, string>) => {
     const params = new URLSearchParams({
       page: page.toString(),
       limit: limit.toString(),
@@ -106,7 +106,7 @@ export const securityApi = {
   },
 
   // Get security alerts
-  getAlerts: async (page: number = 1, limit: number = 10, filters?: any) => {
+  getAlerts: async (page: number = 1, limit: number = 10, filters?: Record<string, string>) => {
     const params = new URLSearchParams({
       page: page.toString(),
       limit: limit.toString(),

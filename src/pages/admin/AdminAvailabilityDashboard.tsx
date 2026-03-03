@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { supabase, StaffMember } from "@/lib/supabase";
+import { supabase, StaffMember, StaffAvailability, MeetingRequest, OutpassRequest } from "@/lib/supabase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -20,7 +20,7 @@ const AdminAvailabilityDashboard = () => {
   const [window, setWindow] = useState("now");
   const [loading, setLoading] = useState(true);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     const [staffRes, availabilityRes, meetingsRes, outpassRes] = await Promise.all([
       supabase.from("staff_members").select("*"),
@@ -39,8 +39,8 @@ const AdminAvailabilityDashboard = () => {
     const nowMins = now.getHours() * 60 + now.getMinutes();
 
     const enriched: Row[] = staff.map((s) => {
-      const av = availability.filter((a: any) => a.staff_id === s.id && a.day_of_week === day && a.is_available);
-      const hasSlotNow = av.some((a: any) => {
+      const av = availability.filter((a: StaffAvailability) => a.staff_id === s.id && a.day_of_week === day && a.is_available);
+      const hasSlotNow = av.some((a: StaffAvailability) => {
         const [sh, sm] = a.start_time.split(":").map(Number);
         const [eh, em] = a.end_time.split(":").map(Number);
         const start = sh * 60 + sm;
@@ -51,14 +51,14 @@ const AdminAvailabilityDashboard = () => {
         return nowMins >= start && nowMins <= end;
       });
 
-      const inMeeting = meetings.some((m: any) => {
+      const inMeeting = meetings.some((m: Pick<MeetingRequest, 'staff_id' | 'status' | 'requested_time'>) => {
         if (m.staff_id !== s.id || m.status !== "approved") return false;
         const t = new Date(m.requested_time).getTime();
         const diff = Math.abs(t - now.getTime());
         return diff <= 60 * 60 * 1000;
       });
 
-      const hasOutpassDuty = outpasses.some((o: any) => {
+      const hasOutpassDuty = outpasses.some((o: Pick<OutpassRequest, 'approved_by' | 'status' | 'departure_time' | 'return_time'>) => {
         if (o.approved_by !== s.id || o.status !== "approved") return false;
         return now >= new Date(o.departure_time) && now <= new Date(o.return_time);
       });
@@ -74,9 +74,9 @@ const AdminAvailabilityDashboard = () => {
 
     setRows(enriched);
     setLoading(false);
-  };
+  }, [window]);
 
-  useEffect(() => { fetchData(); }, [window]);
+  useEffect(() => { fetchData(); }, [fetchData]);
 
   const depts = useMemo(() => ["all", ...Array.from(new Set(rows.map((r) => r.department || "General")))], [rows]);
 

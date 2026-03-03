@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase, MeetingRequest, Profile, StaffMember } from "@/lib/supabase";
@@ -35,7 +35,7 @@ const StaffMeetings = () => {
   const [remarks, setRemarks] = useState("");
   const [processing, setProcessing] = useState(false);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     if (!profile) return;
 
     // Get staff member info
@@ -62,11 +62,11 @@ const StaffMeetings = () => {
       }
     }
     setLoading(false);
-  };
+  }, [profile]);
 
   useEffect(() => {
     fetchData();
-  }, [profile]);
+  }, [fetchData]);
 
   const handleAction = async (action: "approved" | "rejected" | "completed") => {
     if (!selectedRequest) return;
@@ -87,8 +87,8 @@ const StaffMeetings = () => {
       setSelectedRequest(null);
       setRemarks("");
       fetchData();
-    } catch (error: any) {
-      toast.error(error.message || "Failed to process request");
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Failed to process request");
     } finally {
       setProcessing(false);
     }

@@ -84,7 +84,7 @@ const SecurityDashboard: React.FC = () => {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setRequests((data as any) || []);
+      setRequests((data as OutpassWithStudent[]) || []);
     } catch (err) {
       console.error("Error fetching outpass requests:", err);
     } finally {

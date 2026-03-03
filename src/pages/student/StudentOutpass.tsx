@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase, OutpassRequest } from "@/lib/supabase";
@@ -39,7 +39,7 @@ const StudentOutpass = () => {
   const [departureTime, setDepartureTime] = useState("");
   const [returnTime, setReturnTime] = useState("");
 
-  const fetchRequests = async () => {
+  const fetchRequests = useCallback(async () => {
     if (!profile) return;
 
     const { data, error } = await supabase
@@ -52,11 +52,11 @@ const StudentOutpass = () => {
       setRequests(data as OutpassRequest[]);
     }
     setLoading(false);
-  };
+  }, [profile]);
 
   useEffect(() => {
     fetchRequests();
-  }, [profile]);
+  }, [fetchRequests]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -107,8 +107,8 @@ const StudentOutpass = () => {
       setDepartureTime("");
       setReturnTime("");
       fetchRequests();
-    } catch (error: any) {
-      toast.error(error.message || "Failed to submit request");
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Failed to submit request");
     } finally {
       setSubmitting(false);
     }

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { supabase, Profile, StaffMember } from "@/lib/supabase";
+import { supabase, Profile, StaffMember, StaffAvailability, MeetingRequest, OutpassRequest, UserRole } from "@/lib/supabase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -64,9 +64,9 @@ const AdminStaffManagement = () => {
 
       const mapped: StaffRow[] = staff.map((s) => {
         const linkedProfile = profileList.find((p) => p.id === s.profile_id) || null;
-        const staffAvail = availability.filter((a: any) => a.staff_id === s.id);
-        const todays = staffAvail.filter((a: any) => a.day_of_week === day && a.is_available);
-        const hasCurrentSlot = todays.some((a: any) => {
+        const staffAvail = availability.filter((a: StaffAvailability) => a.staff_id === s.id);
+        const todays = staffAvail.filter((a: StaffAvailability) => a.day_of_week === day && a.is_available);
+        const hasCurrentSlot = todays.some((a: StaffAvailability) => {
           const [sh, sm] = (a.start_time || "00:00").split(":").map(Number);
           const [eh, em] = (a.end_time || "00:00").split(":").map(Number);
           const start = sh * 60 + sm;
@@ -74,14 +74,14 @@ const AdminStaffManagement = () => {
           return nowMinutes >= start && nowMinutes <= end;
         });
 
-        const inMeeting = meetings.some((m: any) => {
+        const inMeeting = meetings.some((m: Pick<MeetingRequest, 'staff_id' | 'status' | 'requested_time'>) => {
           if (m.staff_id !== s.id || m.status !== "approved") return false;
           const t = new Date(m.requested_time).getTime();
           return Math.abs(t - now.getTime()) <= 60 * 60 * 1000;
         });
 
         const onOutpass = linkedProfile
-          ? outpasses.some((o: any) =>
+          ? outpasses.some((o: Pick<OutpassRequest, 'student_id' | 'status' | 'departure_time' | 'return_time'>) =>
               o.student_id === linkedProfile.id &&
               o.status === "approved" &&
               now >= new Date(o.departure_time) &&
@@ -99,8 +99,8 @@ const AdminStaffManagement = () => {
       });
 
       setRows(mapped);
-    } catch (e: any) {
-      toast.error(e.message || "Failed to load staff data");
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Failed to load staff data");
     } finally {
       setLoading(false);
     }
@@ -181,7 +181,7 @@ const AdminStaffManagement = () => {
       if (form.profile_id) {
         const { error: roleErr } = await supabase
           .from("profiles")
-          .update({ role: form.access_role as any, department: form.department })
+          .update({ role: form.access_role as UserRole, department: form.department })
           .eq("id", form.profile_id);
         if (roleErr) throw roleErr;
       }
@@ -190,8 +190,8 @@ const AdminStaffManagement = () => {
       setOpen(false);
       resetForm();
       fetchData();
-    } catch (e: any) {
-      toast.error(e.message || "Save failed");
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Save failed");
     } finally {
       setSubmitting(false);
     }
@@ -203,8 +203,8 @@ const AdminStaffManagement = () => {
       if (error) throw error;
       toast.success("Staff removed");
       fetchData();
-    } catch (e: any) {
-      toast.error(e.message || "Delete failed");
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Delete failed");
     }
   };
 

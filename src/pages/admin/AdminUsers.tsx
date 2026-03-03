@@ -54,7 +54,7 @@ const AdminUsers = () => {
 
   useEffect(() => { fetchUsers(); }, []);
 
-  const callAdminApi = async (body: any) => {
+  const callAdminApi = async (body: Record<string, unknown>) => {
     const { data, error } = await supabase.functions.invoke("admin-users", {
       body,
     });
@@ -84,8 +84,8 @@ const AdminUsers = () => {
       setCreateOpen(false);
       resetForm();
       fetchUsers();
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setProcessing(false);
     }
@@ -107,8 +107,8 @@ const AdminUsers = () => {
       toast.success("User updated successfully!");
       setEditOpen(false);
       fetchUsers();
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setProcessing(false);
     }
@@ -125,8 +125,8 @@ const AdminUsers = () => {
       toast.success("User deleted successfully!");
       setDeleteOpen(false);
       fetchUsers();
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setProcessing(false);
     }
@@ -148,8 +148,8 @@ const AdminUsers = () => {
       toast.success("Password reset successfully!");
       setResetPwOpen(false);
       setNewPassword("");
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setProcessing(false);
     }

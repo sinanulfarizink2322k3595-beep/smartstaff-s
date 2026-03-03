@@ -51,8 +51,8 @@ const ResetPassword = () => {
       if (error) throw error;
       toast.success("Password updated successfully! Redirecting...");
       setTimeout(() => navigate("/login"), 2000);
-    } catch (error: any) {
-      toast.error(error.message || "Failed to reset password");
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Failed to reset password");
     } finally {
       setLoading(false);
     }

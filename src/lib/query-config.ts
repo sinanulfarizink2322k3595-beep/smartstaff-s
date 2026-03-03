@@ -1,5 +1,5 @@
 // Optimized React Query configuration with caching strategy
-import { DefaultOptions } from '@tanstack/react-query';
+import { DefaultOptions, QueryClient } from '@tanstack/react-query';
 
 export const queryConfig: DefaultOptions = {
   queries: {
@@ -66,28 +66,28 @@ export const queryKeys = {
 // Smart mutation invalidation helpers
 export const invalidationStrategies = {
   // After creating a new user, invalidate the user list
-  onUserCreated: (queryClient: any) => {
+  onUserCreated: (queryClient: QueryClient) => {
     queryClient.invalidateQueries({ queryKey: queryKeys.users.all });
   },
   
   // After updating a user, invalidate specific user and list
-  onUserUpdated: (queryClient: any, userId: string) => {
+  onUserUpdated: (queryClient: QueryClient, userId: string) => {
     queryClient.invalidateQueries({ queryKey: queryKeys.users.detail(userId) });
     queryClient.invalidateQueries({ queryKey: queryKeys.users.all });
   },
   
   // After deleting a user, invalidate list
-  onUserDeleted: (queryClient: any) => {
+  onUserDeleted: (queryClient: QueryClient) => {
     queryClient.invalidateQueries({ queryKey: queryKeys.users.all });
   },
   
   // After creating outpass, invalidate related queries
-  onOutpassCreated: (queryClient: any) => {
+  onOutpassCreated: (queryClient: QueryClient) => {
     queryClient.invalidateQueries({ queryKey: queryKeys.outpasses.all });
   },
   
   // After updating outpass status
-  onOutpassUpdated: (queryClient: any, outpassId: string) => {
+  onOutpassUpdated: (queryClient: QueryClient, outpassId: string) => {
     queryClient.invalidateQueries({
       queryKey: queryKeys.outpasses.detail(outpassId),
     });

@@ -72,8 +72,8 @@ const StudentFeedback = () => {
 
       // Reset submitted state after 3 seconds
       setTimeout(() => setSubmitted(false), 3000);
-    } catch (error: any) {
-      toast.error(error.message || "Failed to submit feedback");
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Failed to submit feedback");
     } finally {
       setLoading(false);
     }

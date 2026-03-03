@@ -25,7 +25,7 @@ const AdminAttendanceLogs = () => {
       .select("id, gate_status, gate_verified_at, departure_time, return_time, status, student:profiles!outpass_requests_student_id_fkey(full_name, roll_number)")
       .order("updated_at", { ascending: false });
 
-    const mapped = ((data || []) as any[]).map((d) => ({
+    const mapped = ((data || []) as Record<string, unknown>[]).map((d) => ({
       id: d.id,
       student_name: d.student?.full_name || "Unknown",
       roll_number: d.student?.roll_number || "",

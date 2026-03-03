@@ -14,7 +14,7 @@ export interface NotificationPayload {
     phone?: string;
     sendEmail?: boolean;
     sendSms?: boolean;
-    metadata?: Record<string, any>;
+    metadata?: Record<string, unknown>;
 }
 
 /**
