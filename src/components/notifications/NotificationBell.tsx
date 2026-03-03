@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Bell, Check, Trash2 } from "lucide-react";
@@ -25,7 +25,7 @@ export const NotificationBell = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [open, setOpen] = useState(false);
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     if (!user) return;
     const { data } = await supabase
       .from("notifications")
@@ -34,7 +34,7 @@ export const NotificationBell = () => {
       .order("created_at", { ascending: false })
       .limit(20);
     if (data) setNotifications(data);
-  };
+  }, [user]);
 
   useEffect(() => {
     fetchNotifications();
@@ -59,7 +59,7 @@ export const NotificationBell = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user]);
+  }, [user, fetchNotifications]);
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
 

@@ -88,16 +88,16 @@ export default function AdminSecurityManagement() {
       ));
 
       // Load gate logs
-      const logs: any[] = localStorage.getItem('gate_logs')
-        ? JSON.parse(localStorage.getItem('gate_logs') || '[]')
+      const logs: GateLog[] = localStorage.getItem('gate_logs')
+        ? (JSON.parse(localStorage.getItem('gate_logs') || '[]') as Record<string, unknown>[]).map(log => ({
+            id: log.id as string,
+            studentName: log.studentName as string,
+            action: log.gate_action as string,
+            timestamp: (log.verified_at as string) || new Date().toISOString(),
+            verifiedBy: (log.verified_by as string) || 'Security Staff'
+          }))
         : [];
-      setGateLogs(logs.map(log => ({
-        id: log.id,
-        studentName: log.studentName,
-        action: log.gate_action,
-        timestamp: log.verified_at || new Date().toISOString(),
-        verifiedBy: log.verified_by || 'Security Staff'
-      })).slice(0, 5)); // Show latest 5
+      setGateLogs(logs.slice(0, 5)); // Show latest 5
 
     } catch (error: unknown) {
       const errMsg = error instanceof Error ? error.message : 'Error loading security data';

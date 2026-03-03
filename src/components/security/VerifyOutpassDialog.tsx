@@ -82,7 +82,7 @@ export const VerifyOutpassDialog: React.FC<VerifyOutpassDialogProps> = ({
         setError("No outpass found with this ID.");
         return;
       }
-      setResult(data as any);
+      setResult(data as VerifiedOutpass);
     } catch {
       setError("Failed to verify outpass.");
     } finally {

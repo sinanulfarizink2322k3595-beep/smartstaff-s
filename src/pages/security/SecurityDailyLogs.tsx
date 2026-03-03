@@ -70,8 +70,8 @@ const SecurityDailyLogs = () => {
       const allLogs = JSON.parse(localStorage.getItem("gate_logs") || "[]");
 
       // Filter by selected date
-      const filteredByDate = allLogs.filter((log: any) => {
-        const logDate = new Date(log.verified_at).toISOString().split("T")[0];
+      const filteredByDate = (allLogs as Record<string, unknown>[]).filter((log) => {
+        const logDate = new Date(log.verified_at as string).toISOString().split("T")[0];
         return logDate === selectedDate;
       });
 
@@ -82,7 +82,7 @@ const SecurityDailyLogs = () => {
       }
 
       // Fetch outpass details
-      const outpassIds = [...new Set(filteredByDate.map((l: any) => l.outpass_id))] as string[];
+      const outpassIds = [...new Set(filteredByDate.map((l) => l.outpass_id as string))] as string[];
       const { data: outpassData } = await supabase
         .from("outpass_requests")
         .select(
@@ -92,15 +92,15 @@ const SecurityDailyLogs = () => {
 
       // Fetch student details
       if (outpassData) {
-        const studentIds = [...new Set(outpassData.map((o: any) => o.student_id))];
+        const studentIds = [...new Set(outpassData.map((o) => o.student_id))];
         const { data: studentData } = await supabase
           .from("profiles")
           .select("id, full_name, department")
           .in("id", studentIds);
 
-        const outpassMap = new Map(outpassData.map((o: any) => [o.id, o]));
+        const outpassMap = new Map(outpassData.map((o) => [o.id, o]));
         const studentMap = new Map(
-          (studentData || []).map((s: any) => [s.id, s])
+          (studentData || []).map((s) => [s.id, s])
         );
 
         // Process logs to create daily summary
@@ -353,7 +353,7 @@ const SecurityDailyLogs = () => {
           <label className="text-sm font-semibold mb-2 block">Filter Status</label>
           <Select
             value={filterStatus}
-            onValueChange={(v: string) => setFilterStatus((v as any) || "all")}
+            onValueChange={(v: string) => setFilterStatus((v as "all" | "outside" | "returned" | "late") || "all")}
           >
             <SelectTrigger className="w-full md:w-48">
               <SelectValue placeholder="Filter by status" />

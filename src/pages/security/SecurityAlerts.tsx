@@ -129,7 +129,7 @@ const SecurityAlerts = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [filterSeverity, filterType]);
 
   useEffect(() => {
     fetchAlerts();
@@ -301,7 +301,7 @@ const SecurityAlerts = () => {
             <label className="text-sm font-semibold mb-2 block">Status</label>
             <Select
               value={filterType}
-              onValueChange={(v: string) => setFilterType((v as any) || "all")}
+              onValueChange={(v: string) => setFilterType((v as "all" | "unresolved" | "resolved") || "all")}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Filter by status" />
@@ -318,7 +318,7 @@ const SecurityAlerts = () => {
             <label className="text-sm font-semibold mb-2 block">Severity</label>
             <Select
               value={filterSeverity}
-              onValueChange={(v: string) => setFilterSeverity((v as any) || "all")}
+              onValueChange={(v: string) => setFilterSeverity((v as "all" | "info" | "warning" | "critical") || "all")}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Filter by severity" />

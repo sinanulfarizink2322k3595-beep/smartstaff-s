@@ -40,7 +40,7 @@ const AdminMeetingSchedule = () => {
       supabase.from("staff_members").select("*"),
     ]);
 
-    setMeetings((meetingRes.data || []) as any);
+    setMeetings((meetingRes.data || []) as MeetingRow[]);
     setStudents((studentRes.data || []) as Profile[]);
     setStaff((staffRes.data || []) as StaffMember[]);
   };
@@ -60,7 +60,7 @@ const AdminMeetingSchedule = () => {
       purpose,
       status: "approved",
       staff_remarks: "Scheduled by admin",
-    } as any);
+    } as Partial<MeetingRow>);
     if (error) {
       toast.error(error.message);
       return;

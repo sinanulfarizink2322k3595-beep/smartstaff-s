@@ -114,7 +114,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           user_id: data.user.id,
           email,
           full_name: fullName,
-          role: role as any,
+          role: role,
           department: additionalData?.department,
           roll_number: additionalData?.rollNumber,
           phone: additionalData?.phone,
@@ -125,8 +125,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         toast.success("Account created! You can now sign in.");
       }
-    } catch (error: any) {
-      toast.error(error.message || "Failed to sign up");
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Failed to sign up");
       throw error;
     } finally {
       setLoading(false);
@@ -144,8 +144,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (error) throw error;
 
       toast.success("Welcome back!");
-    } catch (error: any) {
-      toast.error(error.message || "Failed to sign in");
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Failed to sign in");
       throw error;
     } finally {
       setLoading(false);
@@ -160,8 +160,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setSession(null);
       setProfile(null);
       toast.success("Signed out successfully");
-    } catch (error: any) {
-      toast.error(error.message || "Failed to sign out");
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Failed to sign out");
     }
   };
 

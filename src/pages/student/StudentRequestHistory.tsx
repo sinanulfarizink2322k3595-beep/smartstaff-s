@@ -334,7 +334,7 @@ const StudentRequestHistory = () => {
                 />
               </div>
 
-              <Select value={filterType} onValueChange={(val: string) => setFilterType((val as any))}>
+              <Select value={filterType} onValueChange={(val: string) => setFilterType(val as "all" | "outpass" | "meeting")}>
                 <SelectTrigger>
                   <SelectValue placeholder="Filter by type..." />
                 </SelectTrigger>

@@ -148,7 +148,7 @@ const StaffDashboard = () => {
                 <p className="text-muted-foreground text-center py-6">No outpass requests</p>
               ) : (
                 <div className="space-y-3">
-                  {outpassRequests.slice(0, 5).map((request: any) => (
+                  {outpassRequests.slice(0, 5).map((request) => (
                     <div
                       key={request.id}
                       className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"

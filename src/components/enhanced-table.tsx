@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import {
   Table,
   TableBody,
@@ -15,13 +16,13 @@ interface EnhancedTableProps {
   columns: Array<{
     key: string;
     label: string;
-    render?: (value: any, row: any) => React.ReactNode;
+    render?: (value: unknown, row: Record<string, unknown>) => React.ReactNode;
     className?: string;
   }>;
-  data: any[];
+  data: Record<string, unknown>[];
   hoverable?: boolean;
   striped?: boolean;
-  onRowClick?: (row: any) => void;
+  onRowClick?: (row: Record<string, unknown>) => void;
   isLoading?: boolean;
   loadingRows?: number;
 }

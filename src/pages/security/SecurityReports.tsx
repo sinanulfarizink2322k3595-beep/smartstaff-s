@@ -112,8 +112,8 @@ const SecurityReports = () => {
       const allLogs = JSON.parse(localStorage.getItem("gate_logs") || "[]");
 
       // Filter logs by date range
-      const logsData = allLogs.filter((log: any) => {
-        const logDate = log.verified_at.split("T")[0];
+      const logsData = (allLogs as Record<string, unknown>[]).filter((log) => {
+        const logDate = (log.verified_at as string).split("T")[0];
         return logDate >= startDate && logDate <= endDate;
       });
 
@@ -146,7 +146,7 @@ const SecurityReports = () => {
         );
 
         // Generate daily report
-        const dailyStats = new Map<string, any>();
+        const dailyStats = new Map<string, ReportData>();
 
         for (const log of logsData) {
           const date = log.verified_at.split("T")[0];

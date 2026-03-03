@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase, MeetingRequest, StaffMember } from "@/lib/supabase";
@@ -60,7 +60,7 @@ const StudentMeetings = () => {
   const [purpose, setPurpose] = useState("");
   const [requestedTime, setRequestedTime] = useState("");
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     if (!profile) return;
 
     const [meetingsRes, staffRes] = await Promise.all([
@@ -75,11 +75,11 @@ const StudentMeetings = () => {
     if (meetingsRes.data) setRequests(meetingsRes.data as MeetingRequest[]);
     if (staffRes.data) setStaffMembers(staffRes.data as StaffMember[]);
     setLoading(false);
-  };
+  }, [profile]);
 
   useEffect(() => {
     fetchData();
-  }, [profile]);
+  }, [fetchData]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -123,8 +123,8 @@ const StudentMeetings = () => {
       setPurpose("");
       setRequestedTime("");
       fetchData();
-    } catch (error: any) {
-      toast.error(error.message || "Failed to submit request");
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Failed to submit request");
     } finally {
       setSubmitting(false);
     }
@@ -151,8 +151,8 @@ const StudentMeetings = () => {
       setCancelDialogOpen(false);
       setSelectedCancelRequest(null);
       toast.success("Meeting request cancelled");
-    } catch (error: any) {
-      toast.error(error.message || "Failed to cancel meeting");
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Failed to cancel meeting");
     } finally {
       setCanceling(false);
     }

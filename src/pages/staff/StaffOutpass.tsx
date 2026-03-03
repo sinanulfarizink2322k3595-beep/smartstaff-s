@@ -23,6 +23,7 @@ import {
 
 interface OutpassWithStudent extends OutpassRequest {
   student?: Profile;
+  gate_status?: string;
 }
 
 const StaffOutpass = () => {
@@ -70,8 +71,8 @@ const StaffOutpass = () => {
       setSelectedRequest(null);
       setRemarks("");
       fetchRequests();
-    } catch (error: any) {
-      toast.error(error.message || "Failed to process request");
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Failed to process request");
     } finally {
       setProcessing(false);
     }
@@ -206,13 +207,13 @@ const StaffOutpass = () => {
                              <span className="text-sm">{request.destination}</span>
                            </div>
                            <p className="text-sm text-muted-foreground">{request.reason}</p>
-                           {(request as any).gate_status && (request as any).gate_status !== "on_campus" && (
+                           {request.gate_status && request.gate_status !== "on_campus" && (
                              <p className={`text-xs mt-1 font-medium ${
-                               (request as any).gate_status === "left"
+                               request.gate_status === "left"
                                  ? "text-orange-600"
                                  : "text-green-600"
                              }`}>
-                               Gate: {(request as any).gate_status === "left" ? "Left Campus" : "Returned"}
+                               Gate: {request.gate_status === "left" ? "Left Campus" : "Returned"}
                              </p>
                            )}
                            {request.hod_remarks && (

@@ -31,7 +31,7 @@ const AdminNotifications = () => {
       supabase.from("notifications").select("*").order("created_at", { ascending: false }),
       supabase.from("profiles").select("*").in("role", ["staff", "admin"]),
     ]);
-    setRows((notifRes.data || []) as any);
+    setRows((notifRes.data || []) as NotifRow[]);
     setRecipients((usersRes.data || []) as Profile[]);
   };
 
@@ -60,7 +60,7 @@ const AdminNotifications = () => {
       is_read: false,
     }));
 
-    const { error } = await supabase.from("notifications").insert(payload as any);
+    const { error } = await supabase.from("notifications").insert(payload as NotifRow[]);
     if (error) {
       toast.error(error.message);
       return;

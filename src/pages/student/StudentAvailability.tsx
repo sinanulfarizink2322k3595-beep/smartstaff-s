@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { supabase, StaffMember, StaffAvailability as StaffAvailabilityType } from "@/lib/supabase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -60,7 +60,7 @@ const StudentAvailability = () => {
   };
 
   // Check if staff is available right now
-  const isStaffAvailableNow = (staffId: string) => {
+  const isStaffAvailableNow = useCallback((staffId: string) => {
     const { dayOfWeek, hour } = getCurrentDayAndTime();
     return availability.some((a) => {
       if (a.staff_id !== staffId || !a.is_available) return false;
@@ -69,7 +69,7 @@ const StudentAvailability = () => {
       const end = parseInt(a.end_time.split(":")[0]);
       return hour >= start && hour < end;
     });
-  };
+  }, [availability]);
 
   // Get unique departments
   const departments = useMemo(
@@ -105,7 +105,7 @@ const StudentAvailability = () => {
     }
 
     return filtered;
-  }, [staffMembers, searchTerm, departmentFilter, availableNowOnly]);
+  }, [staffMembers, searchTerm, departmentFilter, availableNowOnly, isStaffAvailableNow]);
 
   // Heatmap data: for each day/hour, count how many staff are available
   const heatmapData: { day: string; hour: number; hourLabel: string; count: number }[] = [];

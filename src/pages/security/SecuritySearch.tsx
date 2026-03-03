@@ -88,8 +88,8 @@ const SecuritySearch = () => {
       // Fetch today's gate logs from localStorage
       const allLogs = JSON.parse(localStorage.getItem("gate_logs") || "[]");
       const today = new Date().toISOString().split("T")[0];
-      const logsData = allLogs.filter((log: any) => {
-        const logDate = new Date(log.verified_at).toISOString().split("T")[0];
+      const logsData = (allLogs as Record<string, unknown>[]).filter((log) => {
+        const logDate = new Date(log.verified_at as string).toISOString().split("T")[0];
         return logDate === today;
       });
 
@@ -100,12 +100,12 @@ const SecuritySearch = () => {
       const outpassMap = new Map(outpassData.map((o) => [o.id, o]));
 
       // Group logs by outpass_id
-      const logsGrouped = new Map<string, Array<any>>();
-      (logsData || []).forEach((log: any) => {
-        if (!logsGrouped.has(log.outpass_id)) {
-          logsGrouped.set(log.outpass_id, []);
+      const logsGrouped = new Map<string, Record<string, unknown>[]>();
+      (logsData || []).forEach((log) => {
+        if (!logsGrouped.has(log.outpass_id as string)) {
+          logsGrouped.set(log.outpass_id as string, []);
         }
-        logsGrouped.get(log.outpass_id)!.push(log);
+        logsGrouped.get(log.outpass_id as string)!.push(log);
       });
 
       // Build staff records
@@ -308,7 +308,7 @@ const SecuritySearch = () => {
             </Label>
             <Select
               value={filterStatus}
-              onValueChange={(v: any) => setFilterStatus(v)}
+              onValueChange={(v: string) => setFilterStatus(v as "all" | "outside" | "returned" | "late")}
             >
               <SelectTrigger>
                 <SelectValue placeholder="All statuses" />

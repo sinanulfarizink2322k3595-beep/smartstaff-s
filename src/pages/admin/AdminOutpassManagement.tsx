@@ -19,6 +19,7 @@ interface Row {
   return_time: string;
   status: "pending" | "approved" | "rejected";
   hod_remarks?: string | null;
+  approved_by?: string | null;
   requested_by_security: boolean;
   gate_status: string;
   student?: { full_name: string; roll_number?: string | null; department?: string | null };
@@ -47,7 +48,7 @@ const AdminOutpassManagement = () => {
       supabase.from("staff_members").select("*"),
     ]);
 
-    setRows((outRes.data || []) as any);
+    setRows((outRes.data || []) as Row[]);
     setStaff((staffRes.data || []) as StaffMember[]);
     setLoading(false);
   };
@@ -57,7 +58,7 @@ const AdminOutpassManagement = () => {
   const updateStatus = async (status: "approved" | "rejected") => {
     if (!selected) return;
     try {
-      const payload: any = { status, hod_remarks: remarks || null };
+      const payload: Partial<Row> = { status, hod_remarks: remarks || null };
       if (status === "approved" && approverId) payload.approved_by = approverId;
 
       const { error } = await supabase.from("outpass_requests").update(payload).eq("id", selected.id);
@@ -70,7 +71,7 @@ const AdminOutpassManagement = () => {
           message: `Emergency outpass has been ${status}`,
           type: "outpass",
           related_id: selected.id,
-        } as any);
+        } as Record<string, unknown>);
       }
 
       toast.success(`Request ${status}`);
@@ -78,8 +79,8 @@ const AdminOutpassManagement = () => {
       setRemarks("");
       setApproverId("");
       fetchData();
-    } catch (e: any) {
-      toast.error(e.message || "Failed to update request");
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Failed to update request");
     }
   };
 

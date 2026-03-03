@@ -190,7 +190,7 @@ export const getAnalyticsReport = async (
  * Calculate daily trend data
  */
 const calculateDailyTrend = (
-    data: any[],
+    data: { created_at: string }[],
     days: number = 7
 ): TrendData[] => {
     const trendMap = new Map<string, number>();
@@ -350,7 +350,7 @@ export const predictAttendance = async (daysAhead: number = 7) => {
         if (!data || data.length === 0) return null;
 
         const meetingMap = new Map<string, number>();
-        data.forEach((record: any) => {
+        data.forEach((record: { created_at: string }) => {
             const date = record.created_at.split("T")[0];
             meetingMap.set(date, (meetingMap.get(date) || 0) + 1);
         });
