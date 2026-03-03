@@ -19,6 +19,7 @@ interface Row {
   return_time: string;
   status: "pending" | "approved" | "rejected";
   hod_remarks?: string | null;
+  approved_by?: string | null;
   requested_by_security: boolean;
   gate_status: string;
   student?: { full_name: string; roll_number?: string | null; department?: string | null };
@@ -58,7 +59,7 @@ const AdminOutpassManagement = () => {
     if (!selected) return;
     try {
       const payload: Partial<Row> = { status, hod_remarks: remarks || null };
-      if (status === "approved" && approverId) (payload as Record<string, unknown>).approved_by = approverId;
+      if (status === "approved" && approverId) payload.approved_by = approverId;
 
       const { error } = await supabase.from("outpass_requests").update(payload).eq("id", selected.id);
       if (error) throw error;

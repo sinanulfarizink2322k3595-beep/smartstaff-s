@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { supabase, Profile, StaffMember, StaffAvailability, MeetingRequest, OutpassRequest, UserRole } from "@/lib/supabase";
+import { supabase, Profile, StaffMember, StaffAvailability, UserRole } from "@/lib/supabase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -74,14 +74,14 @@ const AdminStaffManagement = () => {
           return nowMinutes >= start && nowMinutes <= end;
         });
 
-        const inMeeting = meetings.some((m: Pick<MeetingRequest, 'staff_id' | 'status' | 'requested_time'>) => {
+        const inMeeting = meetings.some((m) => {
           if (m.staff_id !== s.id || m.status !== "approved") return false;
           const t = new Date(m.requested_time).getTime();
           return Math.abs(t - now.getTime()) <= 60 * 60 * 1000;
         });
 
         const onOutpass = linkedProfile
-          ? outpasses.some((o: Pick<OutpassRequest, 'student_id' | 'status' | 'departure_time' | 'return_time'>) =>
+          ? outpasses.some((o) =>
               o.student_id === linkedProfile.id &&
               o.status === "approved" &&
               now >= new Date(o.departure_time) &&

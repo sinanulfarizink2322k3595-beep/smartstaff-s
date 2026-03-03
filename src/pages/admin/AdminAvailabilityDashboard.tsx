@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { supabase, StaffMember, StaffAvailability, MeetingRequest, OutpassRequest } from "@/lib/supabase";
+import { supabase, StaffMember, StaffAvailability } from "@/lib/supabase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -51,14 +51,14 @@ const AdminAvailabilityDashboard = () => {
         return nowMins >= start && nowMins <= end;
       });
 
-      const inMeeting = meetings.some((m: Pick<MeetingRequest, 'staff_id' | 'status' | 'requested_time'>) => {
+      const inMeeting = meetings.some((m) => {
         if (m.staff_id !== s.id || m.status !== "approved") return false;
         const t = new Date(m.requested_time).getTime();
         const diff = Math.abs(t - now.getTime());
         return diff <= 60 * 60 * 1000;
       });
 
-      const hasOutpassDuty = outpasses.some((o: Pick<OutpassRequest, 'approved_by' | 'status' | 'departure_time' | 'return_time'>) => {
+      const hasOutpassDuty = outpasses.some((o) => {
         if (o.approved_by !== s.id || o.status !== "approved") return false;
         return now >= new Date(o.departure_time) && now <= new Date(o.return_time);
       });

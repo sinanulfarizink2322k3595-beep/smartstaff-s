@@ -30,12 +30,16 @@ import { toast } from "sonner";
 
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
 
+type DepartmentMetric = { department: string; staffCount: number; admins: number; hodsCount: number; avgAvailability: number; outpassHandled: number };
+type OutpassPatterns = { topReasons: { reason: string; count: number }[]; topDestinations: { destination: string; count: number }[]; statusDistribution: Record<string, number> } | null;
+type AttendancePrediction = { date: string; predictedAttendance: number; confidence: number }[] | null;
+
 export const AdvancedAnalyticsDashboard = () => {
     const [report, setReport] = useState<AnalyticsReport | null>(null);
     const [loading, setLoading] = useState(true);
-    const [departmentMetrics, setDepartmentMetrics] = useState<Awaited<ReturnType<typeof getDepartmentMetrics>>>([]);
-    const [outpassPatterns, setOutpassPatterns] = useState<Awaited<ReturnType<typeof getOutpassPatterns>>>(null);
-    const [predictions, setPredictions] = useState<Awaited<ReturnType<typeof predictAttendance>>>(null);
+    const [departmentMetrics, setDepartmentMetrics] = useState<DepartmentMetric[]>([]);
+    const [outpassPatterns, setOutpassPatterns] = useState<OutpassPatterns>(null);
+    const [predictions, setPredictions] = useState<AttendancePrediction>(null);
 
     useEffect(() => {
         fetchAnalytics();
